@@ -14,67 +14,41 @@
 	<script>
 		var data = null;
 
-		$.getJSON('smzdm-luckydraw.json', json => {
-			json.forEach(item => {
-				item.title = item.title.replace(/^第\d+期 /, '').replace(/【[^】]*】/, '');
-				var endTime = item.endTime.replace('年', '-').replace('月', '-').replace('日 ', 'T') + ':00';
-				item.endTime = new Date(Date.parse(endTime));
-				item.endMonth = item.endTime.getFullYear() + '-' + (item.endTime.getMonth() + 1);
-			});
+		$.getJSON('luckydraw.json', json => {
+			// json.forEach(item => {
+			// 	item.title = item.title.replace(/^第\d+期 /, '').replace(/【[^】]*】/, '');
+			// 	var endTime = item.endTime.replace('年', '-').replace('月', '-').replace('日 ', 'T') + ':00';
+			// 	item.endTime = new Date(Date.parse(endTime));
+			// 	item.endMonth = item.endTime.getFullYear() + '-' + (item.endTime.getMonth() + 1);
+			// 	$.get(item.winnerUrl, html => {					
+			// 		var $html = $(html.replace(/<img[^>]*>/g, ''));
+			// 		item.winnerPosts = $html.find('li.yuanchuang').text();
+			// 		item.winnerSpoils = $html.find('li.baoliao').text();
+			// 	});
+			// });
 
 			data = JLinq.from(json);
 
-			var c1Data = data.groupBy(i => i.endMonth).select(g => {
-				return {
-					'key': g.key,
-					'value': g.query.elements.length
-				};
-			});
+			var cData = data.where(i => new Date(i.endTime).getFullYear() == 2015)
+				.select(i => { return { p: Math.ceil(parseInt(i.winnerNumber) * 10 / parseInt(i.totalNumber)), n: 1 }; })
+				.groupBy(g => g.p).select(g => {
+					return {
+						'key': g.key,
+						'value': g.query.elements.length
+					};
+				}).orderByDescending(g => g.key);
 
-			var c1 = Highcharts.chart('c1', {
+			var c = Highcharts.chart('c2', {
 				chart: {
-					type: 'line',
+					type: 'bar',
 					width: 600,
 					height: 600
 				},
 				title: {
-					text: '幸运屋 每月开奖统计 (' + c1Data.elements.length + ' 个月)',
+					text: '幸运屋 中奖投号位分布 2015年'
 				},
 				xAxis: {
-					categories: c1Data.select(i => i.key).elements
-				},
-				yAxis: {
-					title: {
-						text: '开奖数'
-					}
-				},
-				series: [{
-					name: '开奖数',
-					data: c1Data.select(i => i.value).elements
-				}],
-				credits: {
-					enabled: false
-				}
-			});
-
-			var c2Data = data.groupBy(i => i.winnerName).select(g => {
-				return {
-					'key': g.key,
-					'value': g.query.elements.length
-				};
-			}).orderByDescending(g => g.value).where(g => g.value > 2);
-
-			var c2 = Highcharts.chart('c2', {
-				chart: {
-					type: 'bar',
-					width: 600,
-					height: 800
-				},
-				title: {
-					text: '幸运屋 中奖榜 (' + c1Data.elements.length + ' 人中奖超过 2 次)'
-				},
-				xAxis: {
-					categories: c2Data.select(i => i.key).elements
+					categories: cData.select(i => i.key).elements
 				},
 				yAxis: {
 					title: {
@@ -83,36 +57,105 @@
 				},
 				series: [{
 					name: '中奖数',
-					data: c2Data.select(i => i.value).elements
+					data: cData.select(i => i.value).elements
 				}],
 				credits: {
 					enabled: false
 				}
 			});
 
-			// var c3Data = data.groupBy(i => i.title).select(g => {
-			// 	return {
-			// 		'name': g.key,
-			// 		'weight': g.query.elements.length
-			// 	};
-			// }).orderByDescending(g => g.weight).where(g => g.weight > 10);
+			/*
+						var c1Data = data.groupBy(i => i.endMonth).select(g => {
+							return {
+								'key': g.key,
+								'value': g.query.elements.length
+							};
+						});
+			
+						var c1 = Highcharts.chart('c1', {
+							chart: {
+								type: 'line',
+								width: 600,
+								height: 600
+							},
+							title: {
+								text: '幸运屋 每月开奖统计 (' + c1Data.elements.length + ' 个月)',
+							},
+							xAxis: {
+								categories: c1Data.select(i => i.key).elements
+							},
+							yAxis: {
+								title: {
+									text: '开奖数'
+								}
+							},
+							series: [{
+								name: '开奖数',
+								data: c1Data.select(i => i.value).elements
+							}],
+							credits: {
+								enabled: false
+							}
+						});
+			
+						var c2Data = data.groupBy(i => i.winnerName).select(g => {
+							return {
+								'key': g.key,
+								'value': g.query.elements.length
+							};
+						}).orderByDescending(g => g.value).where(g => g.value > 2);
+			
+						var c2 = Highcharts.chart('c2', {
+							chart: {
+								type: 'bar',
+								width: 600,
+								height: 800
+							},
+							title: {
+								text: '幸运屋 中奖榜 (' + c1Data.elements.length + ' 人中奖超过 2 次)'
+							},
+							xAxis: {
+								categories: c2Data.select(i => i.key).elements
+							},
+							yAxis: {
+								title: {
+									text: '中奖数'
+								}
+							},
+							series: [{
+								name: '中奖数',
+								data: c2Data.select(i => i.value).elements
+							}],
+							credits: {
+								enabled: false
+							}
+						});
+			
+						var c3Data = data.groupBy(i => i.title).select(g => {
+							return {
+								'name': g.key,
+								'weight': g.query.elements.length
+							};
+						}).orderByDescending(g => g.weight).where(g => g.weight > 10);
+			
+						var c3 = Highcharts.chart('c3', {
+							chart: {
+								width: 600,
+								height: 600
+							},
+							title: {
+								text: '幸运屋 奖品榜 (共 ' + c3Data.elements.length + ' 种奖品)'
+							},
+							series: [{
+								type: 'wordcloud',
+								data: c3Data.elements
+							}],
+							credits: {
+								enabled: false
+							}
+						});
+			*/
 
-			// var c3 = Highcharts.chart('c3', {
-			// 	chart: {
-			// 		width: 600,
-			// 		height: 600
-			// 	},
-			// 	title: {
-			// 		text: '幸运屋 奖品榜 (共 ' + c3Data.elements.length + ' 种奖品)'
-			// 	},
-			// 	series: [{
-			// 		type: 'wordcloud',
-			// 		data: c3Data.elements
-			// 	}],
-			// 	credits: {
-			// 		enabled: false
-			// 	}
-			// });
 		});
 	</script>
 </body>
