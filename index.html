@@ -1,0 +1,19 @@
+<html>
+
+<head>
+	<script src="jquery.min.js"></script>
+	<script src="highcharts.js"></script>
+</head>
+
+<body>
+
+	<script>
+		$.getJSON('smzdm-luckydraw.json', json => {
+			json.forEach(item => {
+				item.endTime = item.endTime.replace('年', '-').replace('月', '-').replace('日', '-').replace(' ', 'T') + ':00';
+			});
+		});
+	</script>
+</body>
+
+</html>
