@@ -2,9 +2,11 @@
 
 <head>
 	<script src="jquery.min.js"></script>
-	<style>.chart{
-		display: inline-block;
-	}</style>
+	<style>
+		.chart {
+			display: inline-block;
+		}
+	</style>
 </head>
 
 <body>
@@ -18,6 +20,36 @@
 
 		$.getJSON('authorsFull.json').done(json => {
 			data = JLinq.from(json);
+			var cData = data.where(a => a.type == 'blue').orderByDescending(a => parseInt(a.pingce)).take(50);
+			var c1 = Highcharts.chart('c1', {
+				chart: {
+					type: 'bar'
+					, width: 600
+					,height: 900
+				},
+				title: {
+					text: '蓝V众测榜 TOP 50'
+				},
+				xAxis: {
+					categories: cData.select(a => a.nickname).elements
+					// labels: {
+					// 	formatter: function () { return this.value == 'blue' ? '蓝V' : '黄V'; }
+					// }
+				},
+				yAxis: {
+					title: {
+						text: '众测数'
+					}
+				},
+				series: [{
+					name: '',
+					data: cData.select(a => parseInt(a.pingce)).elements
+				}],
+				credits: {
+					enabled: false
+				}
+			});
+			/*
 			var c1Data = data.groupBy(a => a.type).select(g => { return { key: g.key, value: g.query.elements.length }; });
 			var c2Data = data.groupBy(a => a.type).select(g => { return { key: g.key, value: g.query.sum(a => parseInt(a.yuanchuang)) / g.query.elements.length }; });
 			var c3Data = data.groupBy(a => a.type).select(g => { return { key: g.key, value: g.query.sum(a => parseInt(a.pingce)) / g.query.elements.length }; });
@@ -108,6 +140,7 @@
 					enabled: false
 				}
 			});
+			*/
 		});
 	</script>
 </body>
