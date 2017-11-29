@@ -1,0 +1,148 @@
+<html>
+
+<head>
+	<script src="jquery.min.js"></script>
+	<style>
+		.chart {
+			display: inline-block;
+		}
+	</style>
+</head>
+
+<body>
+	<div id="c1" class="chart"></div>
+	<div id="c2" class="chart"></div>
+	<div id="c3" class="chart"></div>
+	<script src="highcharts.js"></script>
+	<script src="JLinq.js"></script>
+	<script>
+		var data;
+
+		$.getJSON('authorsFull.json').done(json => {
+			data = JLinq.from(json);
+			var cData = data.where(a => a.type == 'blue').orderByDescending(a => parseInt(a.pingce)).take(50);
+			var c1 = Highcharts.chart('c1', {
+				chart: {
+					type: 'bar'
+					, width: 600
+					,height: 900
+				},
+				title: {
+					text: '蓝V众测榜 TOP 50'
+				},
+				xAxis: {
+					categories: cData.select(a => a.nickname).elements
+					// labels: {
+					// 	formatter: function () { return this.value == 'blue' ? '蓝V' : '黄V'; }
+					// }
+				},
+				yAxis: {
+					title: {
+						text: '众测数'
+					}
+				},
+				series: [{
+					name: '',
+					data: cData.select(a => parseInt(a.pingce)).elements
+				}],
+				credits: {
+					enabled: false
+				}
+			});
+			/*
+			var c1Data = data.groupBy(a => a.type).select(g => { return { key: g.key, value: g.query.elements.length }; });
+			var c2Data = data.groupBy(a => a.type).select(g => { return { key: g.key, value: g.query.sum(a => parseInt(a.yuanchuang)) / g.query.elements.length }; });
+			var c3Data = data.groupBy(a => a.type).select(g => { return { key: g.key, value: g.query.sum(a => parseInt(a.pingce)) / g.query.elements.length }; });
+
+			var c1 = Highcharts.chart('c1', {
+				chart: {
+					type: 'column'
+					, width: 200
+					// ,height: 600
+				},
+				title: {
+					text: '生活家'
+				},
+				xAxis: {
+					categories: c1Data.select(i => i.key).elements,
+					labels: {
+						formatter: function () { return this.value == 'blue' ? '蓝V' : '黄V'; }
+					}
+				},
+				yAxis: {
+					title: {
+						text: '人数'
+					}
+				},
+				series: [{
+					name: '等级',
+					data: c1Data.select(i => i.value).elements
+				}],
+				credits: {
+					enabled: false
+				}
+			});
+			
+			var c2 = Highcharts.chart('c2', {
+				chart: {
+					type: 'column'
+					, width: 200
+					// ,height: 600
+				},
+				title: {
+					text: '生活家'
+				},
+				xAxis: {
+					categories: c1Data.select(i => i.key).elements,
+					labels: {
+						formatter: function () { return this.value == 'blue' ? '蓝V' : '黄V'; }
+					}
+				},
+				yAxis: {
+					title: {
+						text: '人数'
+					}
+				},
+				series: [{
+					name: '人均原创数',
+					data: c2Data.select(i => i.value).elements
+				}],
+				credits: {
+					enabled: false
+				}
+			});
+			
+			var c3 = Highcharts.chart('c3', {
+				chart: {
+					type: 'column'
+					, width: 200
+					// ,height: 600
+				},
+				title: {
+					text: '生活家'
+				},
+				xAxis: {
+					categories: c1Data.select(i => i.key).elements,
+					labels: {
+						formatter: function () { return this.value == 'blue' ? '蓝V' : '黄V'; }
+					}
+				},
+				yAxis: {
+					title: {
+						text: '人数'
+					}
+				},
+				series: [{
+					name: '人均众测数',
+					data: c3Data.select(i => i.value).elements
+				}],
+				credits: {
+					enabled: false
+				}
+			});
+			*/
+		});
+	</script>
+</body>
+
+</html>
