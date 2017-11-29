@@ -54,7 +54,7 @@
 				'服装/箱包',
 				'Sex用品',
 				'育儿产品',
-				'食品',
+				'食品', ~
 				'手机壳/小礼品',
 				'出行/运动产品'
 			];
@@ -66,22 +66,30 @@
 				29,
 				42,
 				25,
-				36+1,
-				9+10,
-				13+45+94+10+8,
-				44+53+1,
-				5+3+13+8+0,
-10
+				36 + 1,
+				9 + 10,
+				13 + 45 + 94 + 10 + 8,
+				44 + 53 + 1,
+				5 + 3 + 13 + 8 + 0,
+				10 + 3 + 5,
+
 			];
+
+			cData = data.where(i => i.winnerSpoils == 0 && i.winnerPosts == 0).groupBy(i => i.winnerName).select(g => {
+				return {
+					key: g.key,
+					value: g.query.elements.length
+				};
+			}).where(g => g.value > 1).orderByDescending(g => g.value);
 
 			var c = Highcharts.chart('c2', {
 				chart: {
 					type: 'bar',
 					width: 600,
-					height: 600
+					height: 1000
 				},
 				title: {
-					text: '幸运屋 中奖投号位分布 2015年'
+					text: '幸运屋 0原创0爆料中奖榜'
 				},
 				xAxis: {
 					categories: cData.select(i => i.key).elements

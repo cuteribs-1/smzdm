@@ -19,7 +19,7 @@
 
 	JLinq.prototype =
 	{
-		aggregate: function (accumulator, seed)
+		aggregate: function (seed, accumulator)
 		{
 			/// <summary>Applies an accumulator function over a sequence. The specified seed value is used as the inital accumulator value.</summary>
 			/// <param name="seed" type="Number|String">The initial accumulator value.</param>
