@@ -1,0 +1,126 @@
+<html>
+
+<head>
+	<script src="jquery.min.js"></script>
+	<script src="console-ext.js"></script>
+	<script src="JLinq.js"></script>
+</head>
+
+<body>
+	<script>
+		var authors = [];
+
+		// $(document).ready(function () {
+		/*
+		var url = 'https://zhiyou.smzdm.com/author/ajax_get_putong_list?tagid=0&page=';
+
+		var getAuthors = p => {
+			$.getJSON(url + p).done(json => {
+				if (json && json.data) {
+					for (var a in json.data) {
+						authors.push(json.data[a]);
+					}
+				}
+
+				console.log(p);
+
+				if (p > 1) {
+					getAuthors(p - 1);
+				} else {
+					console.save(authors, 'authors.json');
+				}
+			});
+		};
+
+		// getAuthors(61);
+
+		*/
+		/*
+		{
+			"smzdm_id": "6358146759",
+			"nickname": "爰语爰笑",
+			"avatar": "http://avatarimg.smzdm.com/default/6358146759/56cc11100157b-middle.jpg",
+			"published_count": "18"
+		}
+		*/
+		var authrosfull = [];
+		var index;
+
+		var getInfo = (authors) => {
+			index--;
+			var author = authors[index];
+			var url = 'https://zhiyou.smzdm.com/member/' + author.smzdm_id + '/pinglun/';
+
+			$.get(url).done(html => {
+				var $html = $(html.replace(/<img[^>]*>/g, ''));
+				var $medal = $html.find('div.self-info div.icon-medal a.icon-medal');
+
+				switch ($medal.attr('title')) {
+					case '生活家':
+						author.type = 'blue';
+						break;
+					case '首席生活家':
+						author.type = 'yellow';
+						break;
+					case '媒体号':
+						author.type = 'red';
+						break;
+				}
+
+				var str = $html.find('div.face-stuff-level').attr('title');
+				author.level = str.substr(0, str.length - 1);
+
+				str = $html.find('li.yuanchuang').text();
+				author.yuanchuang = str.substring(str.indexOf(' ') + 1, str.length);
+
+				str = $html.find('li.wiki').text();
+				author.wiki = str.substring(str.indexOf(' ') + 1, str.length);
+
+				str = $html.find('li.baoliao').text();
+				author.baoliao = str.substring(str.indexOf(' ') + 1, str.length);
+
+				str = $html.find('li.pingce').text();
+				author.pingce = str.substring(str.indexOf(' ') + 1, str.length);
+
+				str = $html.find('li.qingdan').text();
+				author.qingdan = str.substring(str.indexOf(' ') + 1, str.length);
+
+				str = $html.find('li.comment').text();
+				author.comment = str.substring(str.indexOf(' ') + 1, str.length);
+
+				str = $html.find('li.second').text();
+				author.second = str.substring(str.indexOf(' ') + 1, str.length);
+
+				str = $html.find('li.haowu').text();
+				author.haowu = str.substring(str.indexOf(' ') + 1, str.length);
+
+				str = $html.find('div.user-info a.user-focus').text();
+				author.focus = str.substr(0, str.indexOf(' ') - 1);
+
+				str = $html.find('div.user-info a.user-fans').text();
+				author.fans = str.substr(0, str.indexOf(' ') - 1);
+
+				authrosfull.push(author);
+				console.log(index);
+
+				if (index > 1) {
+					getInfo(authors);
+				} else {
+					// console.save(authrosfull, 'authrosfull.json');
+				}
+			});
+		};
+
+		$.getJSON('authors.json').done(json => {
+			authors = json;
+			index = json.length;
+
+			$([1, 2, 3, 4]).each(i => {
+				//getInfo(json);
+			});
+		});
+		// });
+	</script>
+</body>
+
+</html>
