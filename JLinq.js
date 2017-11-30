@@ -318,13 +318,7 @@
 				}
 			},
 			take: function (length) {
-				var newItems = [];
-				var element;
-
-				for (var i = 0; i < 50; i++) {
-					newItems.push(this.elements[i]);
-				}
-
+				var newItems = this.elements.splice(0, length);
 				return JLinq.from(newItems);
 			},
 			takeWhile: function (predicate) {

@@ -20,15 +20,26 @@
 
 		$.getJSON('authorsFull.json').done(json => {
 			data = JLinq.from(json);
-			var cData = data.where(a => a.type == 'blue').orderByDescending(a => parseInt(a.pingce)).take(50);
+			var cData = data.where(a => a.type == 'blue')
+				.select(a => {
+					return {
+						nickname: a.nickname,
+						pingce: parseInt(a.pingce),
+						yuanchuang: parseInt(a.yuanchuang),
+						percentage: parseInt(a.pingce) / parseInt(a.yuanchuang) * 100
+					};
+				})
+				.orderByDescending(a => a.percentage)
+				.take(50);
+
 			var c1 = Highcharts.chart('c1', {
 				chart: {
 					type: 'bar'
 					, width: 600
-					,height: 900
+					, height: 1000
 				},
 				title: {
-					text: '蓝V众测榜 TOP 50'
+					text: '蓝V众测原创性价比榜 TOP 50'
 				},
 				xAxis: {
 					categories: cData.select(a => a.nickname).elements
@@ -36,14 +47,24 @@
 					// 	formatter: function () { return this.value == 'blue' ? '蓝V' : '黄V'; }
 					// }
 				},
-				yAxis: {
+				yAxis: [{
+					title: {
+						text: '原创数'
+					}
+				}, {
 					title: {
 						text: '众测数'
-					}
-				},
+					},
+					opposite: true
+				}]
+				,
 				series: [{
-					name: '',
-					data: cData.select(a => parseInt(a.pingce)).elements
+					name: '众测数',
+					data: cData.select(a => a.pingce).elements,
+					yAxis: 1
+				},{
+					name: '原创数',
+					data: cData.select(a => a.yuanchuang).elements
 				}],
 				credits: {
 					enabled: false
