@@ -1,0 +1,131 @@
+<html>
+
+<head>
+	<script src="jquery.min.js"></script>
+	<script src="dexie.min.js"></script>
+	<script src="console-ext.js"></script>
+	<script src="JLinq.js"></script>
+</head>
+
+<body>
+	<script>
+		var db = new Dexie('articleDb');
+		db.version(1).stores({
+			articles: '&id, pingce, article_id, title, url, recommend, zan_count, coll_count, comm_count, reward_count, time_sort, author_smzdm_id, anonymous',
+			articlesnew: '&unikey, pingce, article_id, title, url, recommend, zan_count, coll_count, comm_count, reward_count, time_sort, author_smzdm_id, anonymous',
+			authors: '&id, name, url, avatar'
+		});
+		db.version(2).stores({
+			articlesnew: '&unikey, pingce, article_id, title, url, recommend, zan_count, coll_count, comm_count, reward_count, time_sort, author_smzdm_id, anonymous'
+		});
+		var urlPrefix = 'https://post.smzdm.com/home/json_more/?filter=all&timesort=';
+		var stop = false, p = 0, start = Date.now();
+
+		var queryData = timeSort => {
+			let url = urlPrefix + timeSort;
+
+			$.getJSON(url).done(json => {
+				if (json && json.data) {
+					for (let i = 0; i < json.data.length; i++) {
+						let obj = json.data[i];
+
+						db.articles.put({
+							id: (obj.article_pingce ? 1 : 0) + '-' + obj.article_id,
+							pingce: obj.article_pingce,
+							article_id: obj.article_id,
+							title: obj.article_title,
+							url: obj.article_url,
+							recommend: obj.article_recommend,
+							zan_count: obj.article_zan_count,
+							coll_count: obj.article_coll_count,
+							comm_count: obj.article_comm_count,
+							reward_count: obj.article_reward_count,
+							time_sort: obj.article_time_sort,
+							author_smzdm_id: obj.article_author_smzdm_id,
+							anonymous: obj.anonymous
+						});
+
+						db.authors.put({
+							id: obj.article_author_smzdm_id,
+							name: obj.article_author_name,
+							url: obj.article_author_url,
+							avatar: obj.article_author_avatar
+						});
+					}
+
+					let article_time_sort = -1;
+
+					if (json.data.length == 24 && !stop) {
+						article_time_sort = json.data[23].article_time_sort;
+						queryData(article_time_sort);
+					}
+
+					let count = p * 24;
+					let seconds = (Date.now() - start) / 1000;
+					console.log(`page: ${p}, articles: ${count}, seconds: ${seconds}, rps: ${count / seconds}, timesort: ${article_time_sort}`);
+					p++;
+				} else {
+					console.log('end');
+					window.alert('article data collection done');
+					return;
+				}
+			});
+		};
+
+		//collectData();
+
+		var downloadData = () => {
+			db.tables.map(t => {
+				t.toArray().then(rows => {
+					console.save(rows, t.name);
+				});
+			});
+		};
+
+/*
+		db.articles.toArray().then(rows => {
+			let count = rows.length;
+			let n = 0;
+
+			console.log('start');
+			rows.forEach(a => {
+				a.unikey = (a.pingce ? 1 : 0) + '-' + a.article_id;
+				delete a.id;
+			});
+
+			db.articlesnew.bulkPut(rows).then(() => console.log('end'));
+		});
+
+		var sampleData = {
+			"error_code": 0,
+			"error_msg": "success",
+			"data": [{
+				"article_pingce": false,
+				"article_id": "49986",
+				"article_url": "https://post.smzdm.com/p/49986/",
+				"article_title": "海外购攻略：百通转运协助退货攻略　",
+				"article_img_url": "//res.smzdm.com/images/smzdm_320_180.jpg",
+				"article_recommend": false,
+				"article_zan_count": "10",
+				"article_coll_count": "103",
+				"article_comm_count": "6",
+				"article_content": "海外购，尤其是频繁的海外购通常会不可避免的遇到退货问题，所谓“常在河边走，哪能不湿鞋”。因为添加了转运和海关这两个层面，而且沟通不便，海外购...",
+				"article_reward_count": "1",
+				"article_pub_date": "2010-07-01 12:27:06",
+				"article_date": "2010-07-01",
+				"article_time_sort": 1277958426,
+				"article_module": 1,
+				"article_author_name": "riantboy",
+				"article_author_smzdm_id": 4871993143,
+				"article_author_url": "http://zhiyou.smzdm.com/member/4871993143/",
+				"article_author_avatar": "//avatarimg.smzdm.com/default/4871993143/56cc0dca2acee-small.jpg",
+				"article_channel": 11,
+				"anonymous": 0
+			}],
+			"total": 6153
+		};
+*/
+	</script>
+</body>
+
+</html>

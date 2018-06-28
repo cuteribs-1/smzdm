@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>鍵盤測試 Keyboard Test</title>
+	<meta charset="UTF-8">
+	<script src="https://code.jquery.com/jquery.min.js"></script>
+
+	<script>
+		$(function () {
+			var default_keys = [
+				'Esc', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12', 'PrtSc', 'Scroll Lock', 'Pause', 'Vol -', 'Vol +',
+				'`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 'Backspace', 'Ins', 'Home', 'PgUp', 'Num Lock', '/', '*', '-',
+				'\u21b9 Tab', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']', '\\', 'Del', 'End', 'PgDn', '7', '8', '9', '+',
+				'Caps Lock', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', '\'', '\u21b5 Enter', '4', '5', '6',
+				'\u21e7 Shift', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/', '\u21e7 Shift', '\u2191', '1', '2', '3', 'Enter',
+				'Ctrl', 'Win', 'Alt', 'Space', 'Alt', 'Win', 'Menu', 'Ctrl', '\u2190', '\u2193', '\u2192', '0', '.'];
+
+			var default_keycode = [
+				27, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 44, 145, 19, 174, 175,
+				192, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 189, 187, 8, 45, 36, 33, 144, 111, 106, 109,
+				9, 81, 87, 69, 82, 84, 89, 85, 73, 79, 80, 219, 221, 220, 46, 35, 34, 103, 104, 105, 107,
+				20, 65, 83, 68, 70, 71, 72, 74, 75, 76, 186, 222, 13, 100, 101, 102,
+				16, 90, 88, 67, 86, 66, 78, 77, 188, 190, 191, 16, 38, 97, 98, 99, 13,
+				17, 91, 18, 32, 18, 92, 93, 17, 37, 40, 39, 96, 110];
+			// right ctrl same as left ctrl (17)
+			// right alt same as left alt (18)
+			// printscreen (44) no keydown
+			// menu (93) no keyup
+
+			var test_questions = ['同時按下方向鍵 上、下、左、右', '同時按下 Q, W, A, S', '同時按下 Z, X, C, V, U, I, O, P'];
+			var test_answers = [[37, 38, 39, 40], [65, 81, 83, 87], [67, 73, 79, 80, 85, 86, 88, 90]];
+			var test_index = 0;
+			var test_running = false;
+			var ghost = 0, absent = 0, usb_limit = 0;
+
+			var hold = [];
+			var tick, tock;
+
+			var NKRO_check = function (answer, input) {
+				var i, index;
+				var match = 0;
+
+				for (i = 0; i < input.length; i++) {
+					index = answer.indexOf(input[i]);
+					if (index == -1) {
+						ghost += 1;
+					} else {
+						match += 1;
+					}
+				}
+
+				if (answer.length > 6 && input.length == 6 && match == 6) {
+					usb_limit = +1;
+				} else {
+					absent += answer.length - match;
+				}
+			};
+
+			var testKeyDown = function () {
+				// $('#progress_bar').stop().css({ width: '630px' }).animate({ width: 0 }, 3000, function () {
+				// 	var result = [];
+				// 	hold.sort();
+				// 	NKRO_check(test_answers[test_index], hold);
+				// 	test_index += 1;
+
+				// 	if (test_index < test_questions.length) {
+				// 		// $('#question').text((test_index + 1) + ' / ' + test_questions.length + '：' + test_questions[test_index]);
+				// 		$('#progress_bar').css({ width: '630px' });
+				// 	} else {
+				// 		if (usb_limit != 0) {
+				// 			result.push('最多輸入 6 鍵');
+				// 		}
+				// 		if (absent != 0) {
+				// 			result.push('有按鍵衝突');
+				// 		}
+				// 		if (ghost != 0) {
+				// 			result.push('有 ghost key');
+				// 		}
+
+				// 		if (usb_limit == 0 && ghost == 0 && absent == 0) {
+				// 			result.push('正確處理 NKRO');
+				// 		} else {
+				// 			result.unshift('無法正確處理 NKRO');
+				// 		}
+
+				// 		// $('#question').text('檢測結果：' + result.join('，') + '。');
+				// 		// $('#progress_box').hide();
+				// 		$('#button_test').show();
+				// 		test_running = false;
+				// 	}
+				// });
+			};
+
+			var onKeyDown = function (evt) {
+				// Firefox uses different keycode from Chrome
+				if (evt.which == 59) {
+					evt.which = 186;
+				} else if (evt.which == 61) {
+					evt.which = 187;
+				} else if (evt.which == 173) {
+					evt.which = 189;
+				}
+
+				var i = default_keycode.indexOf(evt.which);
+
+				if (hold.length == 0) {
+					tick = Date.now();
+				}
+				if (hold.indexOf(evt.which) == -1) {
+					hold.push(evt.which);
+					if (test_running) {
+						// testKeyDown();
+					}
+				}
+
+				$('#k_' + i).removeClass('pressed').addClass('hold');
+
+				if (evt.which === 93) {
+					// manually release menu key
+					$('#k_' + i).removeClass('hold').addClass('pressed');
+					hold.splice(hold.indexOf(i), 1);
+				}
+
+				$('#last_key').val(default_keys[i] + ' (' + evt.which + ')');
+				$('#press_time').val('');
+
+				evt.preventDefault();
+			};
+
+			var onKeyUp = function (evt) {
+				// Firefox uses different keycode from Chrome
+				if (evt.which == 59) {
+					evt.which = 186;
+				} else if (evt.which == 61) {
+					evt.which = 187;
+				} else if (evt.which == 173) {
+					evt.which = 189;
+				}
+
+				var i = default_keycode.indexOf(evt.which);
+
+				tock = Date.now();
+				hold.splice(hold.indexOf(evt.which), 1);
+				if (hold.length == 0) {
+					$('#press_time').val((tock - tick) + ' ms');
+				}
+
+				if (evt.which === 44) {
+					// manually press printscreen key
+					$('#k_' + i).removeClass('pressed').addClass('hold');
+				}
+
+				$('#k_' + i).removeClass('hold').addClass('pressed');
+
+				evt.preventDefault();
+			};
+
+			$('.key').each(function (index) {
+				$(this).attr('id', 'k_' + index).text(default_keys[index]);
+			});
+
+			$('#button_clear').on('click', function () {
+				hold = [];
+				$('.key').removeClass('pressed').removeClass('hold');
+				$('#last_key').val('');
+				$('#press_time').val('');
+			});
+
+			// $('#button_test').on('click', function () {
+			// 	test_running = true;
+			// 	test_index = 0;
+			// 	ghost = 0;
+			// 	absent = 0;
+			// 	usb_limit = 0;
+
+			// 	// $('#progress_box').show();
+			// 	$('#button_test').hide();
+			// 	// $('#question').show().text((test_index + 1) + ' / ' + test_questions.length + '：' + test_questions[test_index]);
+			// 	$('#progress_bar').css({ width: '630px' });
+			// });
+
+			// $('#progress_box').hide();
+			// $('#question').hide();
+
+			$(document).on('keydown', onKeyDown).on('keyup', onKeyUp);
+
+		});
+	</script>
+
+	<style>
+		#keyboard {
+			position: relative;
+			width: 1175px;
+			height: 350px;
+
+			background: #FAF8EC;
+			border: 2px outset #B9AD9D;
+			border-radius: 5px;
+		}
+
+		.key {
+			position: absolute;
+			padding: 3px;
+			width: 35px;
+			height: 35px;
+
+			background: #F2F2EA;
+			border: 2px outset #A1A195;
+			border-radius: 3px;
+		}
+
+		.key.control {
+			background: #CDD3D1;
+			border: 2px outset #B9AD9D;
+		}
+
+		.hold {
+			background: #E0FFFF;
+			border: 2px outset #A3E0FF;
+			;
+		}
+
+		.pressed {
+			background: #C2FFC2;
+			border: 2px outset #85FF85;
+			;
+		}
+
+		.disable {
+			color: #AAAAAA;
+			background: #FFF5E0;
+			border: 2px outset #FFD685;
+			;
+		}
+
+		h2,
+		h3 {
+			text-align: center;
+		}
+
+		#status_box,
+		#test_box {
+			width: 640px;
+			margin-top: 10px;
+			padding: 10px;
+			background: #E0FFFF;
+			border: 2px outset #A3E0FF;
+			;
+			border-radius: 5px;
+		}
+
+		#button_clear {
+			float: right;
+		}
+
+		#question {
+			font-weight: bold;
+			margin-top: 5px;
+			margin-bottom: 10px;
+		}
+
+		#progress_box {
+			width: 630px;
+			height: 12px;
+			margin-bottom: 10px;
+			background: #FFFFFF;
+			border: 1px solid #000;
+		}
+
+		#progress_bar {
+			width: 630px;
+			height: 12px;
+			background: #FFAAAA;
+		}
+
+		#author,
+		#author a {
+			color: #888888;
+		}
+
+		li {
+			line-height: 1.7em;
+		}
+
+		a {
+			text-decoration: none;
+		}
+	</style>
+
+</head>
+
+<body>
+	<h2>鍵盤測試 Keyboard Test</h2>
+	<h3>測試鍵盤按鍵是否正常，是否支援 NKRO (N-Key Rollover)</h3>
+
+	<h4>按鍵測試</h4>
+	<p>按下鍵盤上的按鍵檢測功能是否正常。</p>
+
+	<div id="keyboard">
+
+		<!-- 第一列：Esc, F1, F2, ... -->
+
+		<div class="key control" style="left: 20px; top: 20px;"></div>
+		<div class="key" style="left: 110px; top: 20px;"></div>
+		<div class="key" style="left: 160px; top: 20px;"></div>
+		<div class="key" style="left: 210px; top: 20px;"></div>
+		<div class="key" style="left: 260px; top: 20px;"></div>
+		<div class="key control" style="left: 340px; top: 20px;"></div>
+		<div class="key control" style="left: 390px; top: 20px;"></div>
+		<div class="key control" style="left: 440px; top: 20px;"></div>
+		<div class="key control" style="left: 490px; top: 20px;"></div>
+		<div class="key" style="left: 570px; top: 20px;"></div>
+		<div class="key" style="left: 620px; top: 20px;"></div>
+		<div class="key" style="left: 670px; top: 20px;"></div>
+		<div class="key" style="left: 720px; top: 20px;"></div>
+
+		<div class="key control" style="left: 790px; top: 20px;"></div>
+		<div class="key control" style="left: 840px; top: 20px;"></div>
+		<div class="key control" style="left: 890px; top: 20px;"></div>
+
+		<div class="key control" style="left: 960px; top: 20px;"></div>
+		<div class="key control" style="left: 1010px; top: 20px;"></div>
+
+		<!-- 第二列：`, 1, 2, ... -->
+
+		<div class="key" style="left: 20px; top: 80px;"></div>
+		<div class="key" style="left: 70px; top: 80px;"></div>
+		<div class="key" style="left: 120px; top: 80px;"></div>
+		<div class="key" style="left: 170px; top: 80px;"></div>
+		<div class="key" style="left: 220px; top: 80px;"></div>
+		<div class="key" style="left: 270px; top: 80px;"></div>
+		<div class="key" style="left: 320px; top: 80px;"></div>
+		<div class="key" style="left: 370px; top: 80px;"></div>
+		<div class="key" style="left: 420px; top: 80px;"></div>
+		<div class="key" style="left: 470px; top: 80px;"></div>
+		<div class="key" style="left: 520px; top: 80px;"></div>
+		<div class="key" style="left: 570px; top: 80px;"></div>
+		<div class="key" style="left: 620px; top: 80px;"></div>
+		<div class="key control" style="left: 670px; top: 80px; width: 85px"></div>
+
+		<div class="key" style="left: 790px; top: 80px;"></div>
+		<div class="key" style="left: 840px; top: 80px;"></div>
+		<div class="key" style="left: 890px; top: 80px;"></div>
+
+		<div class="key" style="left: 960px; top: 80px;"></div>
+		<div class="key" style="left: 1010px; top: 80px;"></div>
+		<div class="key" style="left: 1060px; top: 80px;"></div>
+		<div class="key" style="left: 1110px; top: 80px;"></div>
+
+		<!-- 第三列：Tab, Q, W, ... -->
+
+		<div class="key control" style="left: 20px; top: 130px; width: 55px"></div>
+		<div class="key" style="left: 90px; top: 130px;"></div>
+		<div class="key" style="left: 140px; top: 130px;"></div>
+		<div class="key" style="left: 190px; top: 130px;"></div>
+		<div class="key" style="left: 240px; top: 130px;"></div>
+		<div class="key" style="left: 290px; top: 130px;"></div>
+		<div class="key" style="left: 340px; top: 130px;"></div>
+		<div class="key" style="left: 390px; top: 130px;"></div>
+		<div class="key" style="left: 440px; top: 130px;"></div>
+		<div class="key" style="left: 490px; top: 130px;"></div>
+		<div class="key" style="left: 540px; top: 130px;"></div>
+		<div class="key" style="left: 590px; top: 130px;"></div>
+		<div class="key" style="left: 640px; top: 130px;"></div>
+		<div class="key control" style="left: 690px; top: 130px; width: 65px"></div>
+
+		<div class="key" style="left: 790px; top: 130px;"></div>
+		<div class="key" style="left: 840px; top: 130px;"></div>
+		<div class="key" style="left: 890px; top: 130px;"></div>
+
+		<div class="key" style="left: 960px; top: 130px;"></div>
+		<div class="key" style="left: 1010px; top: 130px;"></div>
+		<div class="key" style="left: 1060px; top: 130px;"></div>
+		<div class="key control" style="left: 1110px; top: 130px; height: 85px"></div>
+
+		<!-- 第四列：Caps, A, S, ... -->
+
+		<div class="key control" style="left: 20px; top: 180px; width: 65px"></div>
+		<div class="key" style="left: 100px; top: 180px;"></div>
+		<div class="key" style="left: 150px; top: 180px;"></div>
+		<div class="key" style="left: 200px; top: 180px;"></div>
+		<div class="key" style="left: 250px; top: 180px;"></div>
+		<div class="key" style="left: 300px; top: 180px;"></div>
+		<div class="key" style="left: 350px; top: 180px;"></div>
+		<div class="key" style="left: 400px; top: 180px;"></div>
+		<div class="key" style="left: 450px; top: 180px;"></div>
+		<div class="key" style="left: 500px; top: 180px;"></div>
+		<div class="key" style="left: 550px; top: 180px;"></div>
+		<div class="key" style="left: 600px; top: 180px;"></div>
+		<div class="key control" style="left: 650px; top: 180px; width: 105px"></div>
+
+		<div class="key" style="left: 960px; top: 180px;"></div>
+		<div class="key" style="left: 1010px; top: 180px;"></div>
+		<div class="key" style="left: 1060px; top: 180px;"></div>
+
+		<!-- 第五列：Shift, Z, X, ... -->
+
+		<div class="key control" style="left: 20px; top: 230px; width: 95px"></div>
+		<div class="key" style="left: 130px; top: 230px;"></div>
+		<div class="key" style="left: 180px; top: 230px;"></div>
+		<div class="key" style="left: 230px; top: 230px;"></div>
+		<div class="key" style="left: 280px; top: 230px;"></div>
+		<div class="key" style="left: 330px; top: 230px;"></div>
+		<div class="key" style="left: 380px; top: 230px;"></div>
+		<div class="key" style="left: 430px; top: 230px;"></div>
+		<div class="key" style="left: 480px; top: 230px;"></div>
+		<div class="key" style="left: 530px; top: 230px;"></div>
+		<div class="key" style="left: 580px; top: 230px;"></div>
+		<div class="key control disable" style="left: 630px; top: 230px; width: 125px"></div>
+
+		<div class="key" style="left: 840px; top: 230px;"></div>
+
+		<div class="key" style="left: 960px; top: 230px;"></div>
+		<div class="key" style="left: 1010px; top: 230px;"></div>
+		<div class="key" style="left: 1060px; top: 230px;"></div>
+		<div class="key control disable" style="left: 1110px; top: 230px; height: 85px"></div>
+
+		<!-- 第六列：Ctrl, Win, Alt, ... -->
+
+		<div class="key control" style="left: 20px; top: 280px; width: 50px"></div>
+		<div class="key control" style="left: 85px; top: 280px; width: 50px"></div>
+		<div class="key control" style="left: 150px; top: 280px; width: 50px"></div>
+		<div class="key" style="left: 215px; top: 280px; width: 280px"></div>
+		<div class="key control disable" style="left: 510px; top: 280px; width: 50px"></div>
+		<div class="key control" style="left: 575px; top: 280px; width: 50px"></div>
+		<div class="key control" style="left: 640px; top: 280px; width: 50px"></div>
+		<div class="key control disable" style="left: 705px; top: 280px; width: 50px"></div>
+
+		<div class="key" style="left: 790px; top: 280px;"></div>
+		<div class="key" style="left: 840px; top: 280px;"></div>
+		<div class="key" style="left: 890px; top: 280px;"></div>
+
+		<div class="key control" style="left: 960px; top: 280px; width: 85px"></div>
+		<div class="key" style="left: 1060px; top: 280px;"></div>
+
+	</div>
+
+	<div id="status_box">
+		最後按鍵：
+		<input type="text" id="last_key"></input>
+		持續時間：
+		<input type="text" id="press_time"></input>
+		<button id="button_clear">清除狀態</button>
+	</div>
+
+	<h4>NKRO 測試</h4>
+	<p>測試鍵盤是否正確支援 NKRO (N-Key Rollover)</p>
+	<div id="test_box">
+		<div id="question"></div>
+		<div id="progress_box">
+			<div id="progress_bar"></div>
+		</div>
+		<button id="button_test">開始測試</button>
+	</div>
+	<p>訊息說明：</p>
+	<ul>
+		<li>最多輸入 6 鍵：某些 USB 鍵盤只支援同時輸出 6 鍵。</li>
+		<li>有按鍵衝突：因 keyboard matrix 電路設計，某些按鍵已被按下但無法被偵測。</li>
+		<li>有 ghost key：因 keyboard matrix 電路設計，某些按鍵沒被按下但被誤判為有按下。</li>
+	</ul>
+
+	<h4>已知問題</h4>
+	<ul>
+		<li>不支援 IE 8 及之前的版本</li>
+		<li>無法區分左、右 Ctrl, Alt, Shift 按鍵</li>
+		<li>無法區分主鍵區的 Enter 及數字鍵區的 Enter</li>
+		<li>Firefox 無法區分左右 Windows 鍵</li>
+		<li>按下 Windows 鍵會顯示開始</li>
+		<li>按下 Alt-Tab 後 Alt 鍵不會放開</li>
+		<li>按下 Menu 按鍵會顯示選單</li>
+		<li>Print Screen, Menu 無法正確計時</li>
+	</ul>
+
+	<h4>參考資料</h4>
+	<ul>
+		<li>
+			<a href="http://www.techbang.com/posts/4769">鍵盤有沒有 NKRO ？微軟幫你測 -- T 客幫</a>
+		</li>
+		<li>
+			<a href="http://www.microsoft.com/appliedsciences/antighostingexplained.mspx">Keyboard Ghosting Explained! -- Microsoft</a>
+		</li>
+		<li>
+			<a href="https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/keyCode">KeyboardEvent.keyCode -- Mozilla Developer Network</a>
+		</li>
+	</ul>
+
+	<div id="author">
+		作者：
+		<a href="http://zhouer.org/">En-Ran Zhou</a>
+		<br>排骨修改：2018-03-02
+	</div>
+</body>
+
+</html>

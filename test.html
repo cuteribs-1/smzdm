@@ -1,0 +1,99 @@
+<html>
+
+<head>
+	<script src="jquery.min.js"></script>
+	<!-- <script src="JLinq.js"></script> -->
+	<script src="console-ext.js"></script>
+</head>
+
+<body>
+	<div id="output"></div>
+	<script>
+		var urls = [];
+		var failures = [];
+		var exhibitors = [];
+
+		var parseQueryString = url => {
+			var queryString = url.substring( url.indexOf('?') + 1 );
+			var params = {}, queries, temp, i, l;
+			// Split into key/value pairs
+			queries = queryString.split("&");
+			// Convert the array of strings into an object
+			for (i = 0, l = queries.length; i < l; i++) {
+				temp = queries[i].split('=');
+				params[temp[0]] = temp[1];
+			}
+			return params;
+		};
+
+		var getList = (index, length) => {
+			let startIndex = index * 20;
+			$.get(`http://www.eisenwarenmesse.com/IEM/Exhibitor-search/index.php?fw_goto=aussteller/blaettern&&start=${startIndex}&paginatevalues=%5B%5D`)
+				.done(html => {
+					$(html.replace(/<img[^>]*>/g, '')).find('table.cfaus .cspacer.ca3 a').each((i, a) => {
+						let url = $(a).attr('href');
+						let query = parseQueryString(url);
+						urls.push({
+							kid: query['kid'],
+							url: url
+						});
+					});
+
+					console.log(startIndex);
+
+					if (startIndex < 2700) {
+						getList(index + length, length);
+					} else {
+						console.save(urls, 'urls.json');
+					}
+				});
+		};
+
+		var getDetail = (index, length) => {
+			let url = `http://www.eisenwarenmesse.com${urls[index].url}`;
+
+			$.get(url)
+				.done(html => {
+					let query = parseQueryString(url);
+					let $details = $(html.replace(/<img[^>]*>/g, '')).find('.platzFuerCross');
+
+					if($details.length == 0) {
+						getDetail(index, length);
+						return;
+					}
+					
+					let exhibitor = {
+						kid: query['kid'],
+						name: $details.find('.h1down').text().trim(),
+						address: $details.find('.dtable tr:eq(1) td:eq(1)').text().trim(),
+						phone: $details.find('.dtable tr:eq(2) td:eq(1)').text().trim(),
+						fax: $details.find('.dtable tr:eq(3) td:eq(1)').text().trim(),
+						email: $details.find('.dtable tr:eq(4) td:eq(1)').text().trim(),
+						website: $details.find('.dtable tr:eq(5) td:eq(1)').text().trim()
+					};
+
+					exhibitors.push(exhibitor);
+					console.log(index);
+
+					index += length;
+
+					if (index < urls.length) {
+						getDetail(index, length);
+					}
+				});
+		};
+
+		// $([0]).each(i => {
+		// 	getList(i, 1);
+		// });
+		$.getJSON('urls.json').done(json => {
+			urls = json;
+
+			$([0, 1, 2, 3, 4]).each(i => {
+				getDetail(i, 5);
+			});
+		});
+	</script>
+</body>
+
+</html>
