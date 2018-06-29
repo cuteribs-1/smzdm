@@ -1,0 +1,137 @@
+<html>
+
+<head>
+	<script src="jquery.min.js"></script>
+	<script src="dexie.min.js"></script>
+	<script src="console-ext.js"></script>
+</head>
+
+<body>
+	<div id="output"></div>
+	<script>
+		var db = new Dexie('articleDb');
+		db.version(1).stores({
+			authorsnew: '&id, name, url, avatar, level, title, post, wiki, discount, test, list, comment, sale, share, attention, fan, notfound'
+		});
+
+		var collectAuthors = (startIndex) => {
+			db.authorsnew.toArray().then(rows => {
+				var authors = $.grep(rows, r => {
+					return typeof (r.title) != 'string';
+				});
+
+				console.log(authors.length);
+				var n = 0;
+				var titles = ['首席生活家', '普通生活家', '媒体号'];
+
+				var getValue = ($container, selector, authorId) => {
+					try {
+						let html = $container.find(selector).html();
+						let value = html.substr(html.indexOf(';') + 1);
+						return value;
+					} catch (ex) {
+						console.log(authorId);
+					}
+
+					return 0;
+				};
+
+				var collectNext = (index, length) => {
+					let nextIndex = index + length;
+
+					if (nextIndex < authors.length) {
+						collect(nextIndex, length);
+
+						if (index % 100 == 0) {
+							console.log(index);
+						}
+					} else {
+						n++;
+
+						if (n == length) {
+							console.log('done');
+						}
+					}
+				};
+
+				var collect = (i, length) => {
+					let a = authors[i + startIndex];
+					let author = {
+						id: a.id,
+						name: a.name,
+						url: a.url,
+						avatar: a.avatar,
+						level: 0,
+						title: '',
+						post: 0,
+						wiki: 0,
+						discount: 0,
+						test: 0,
+						list: 0,
+						comment: 0,
+						sale: 0,
+						share: 0,
+						attention: 0,
+						fan: 0,
+						notfound: 0
+					};
+					let url = `https://zhiyou.smzdm.com/member/${author.id}/`;
+
+					$.get(url).fail(() => {
+						author.notfound = 1;
+						db.authorsnew.put(author).then(() => collectNext(i, length));
+					}).done(html => {
+						let $html = $(html.replace(/<img[^>]*>/g, ''));
+
+						// 头衔
+						let a = $.grep($html.find('.icon-medal a'), a => titles.includes(a.title)).pop();
+
+						if (a) {
+							switch (a.title) {
+								case '首席生活家':
+									author.title = 'Y';
+									break;
+								case '普通生活家':
+									author.title = 'B';
+									break;
+								case '媒体号':
+									author.title = 'R';
+									break;
+							}
+						}
+
+						// 内容
+						let $ul = $html.find('ul.navtab');
+						author.post = getValue($ul, 'li.navtab-title.yuanchuang a', author.id);
+						author.wiki = getValue($ul, 'li.navtab-title.wiki a', author.id);
+						author.discount = getValue($ul, 'li.navtab-title.baoliao a', author.id);
+						author.test = getValue($ul, 'li.navtab-title.pingce a', author.id);
+						author.list = getValue($ul, 'li.navtab-title.qingdan a', author.id);
+						author.comment = getValue($ul, 'li.navtab-title.comment a', author.id);
+						author.sale = getValue($ul, 'li.navtab-title.second a', author.id);
+						author.share = getValue($ul, 'li.navtab-title.haowu a', author.id);
+
+						// 粉丝
+						author.attention = $html.find('.user-info a.user-focus span').text();
+						author.fan = $html.find('.user-info a.user-fans span').text();
+
+						//authors.push(author);
+						db.authorsnew.put(author).then(() => collectNext(i, length));
+					});
+				};
+
+				for (let i = 0; i < 10; i++) {
+					collect(i, 10);
+				}
+			});
+		};
+
+		//collectAuthors(0);
+
+		db.authorsnew.toArray(rows => {
+			console.save(rows, 'authors_201806291940.json');
+		});
+	</script>
+</body>
+
+</html>

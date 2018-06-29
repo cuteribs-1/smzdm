@@ -13,10 +13,11 @@
 		db.version(1).stores({
 			articles: '&id, pingce, article_id, title, url, recommend, zan_count, coll_count, comm_count, reward_count, time_sort, author_smzdm_id, anonymous',
 			articlesnew: '&unikey, pingce, article_id, title, url, recommend, zan_count, coll_count, comm_count, reward_count, time_sort, author_smzdm_id, anonymous',
-			authors: '&id, name, url, avatar'
+			authors: '&id, name, url, avatar',
+			authorsnew: '&id, name, url, avatar, title, post, wiki, discount, test, list, comment, sale, share, attention, fan'
 		});
 		db.version(2).stores({
-			articlesnew: '&unikey, pingce, article_id, title, url, recommend, zan_count, coll_count, comm_count, reward_count, time_sort, author_smzdm_id, anonymous'
+			articlesnew: '&unikey, pingce, article_id, title, url, recommend, zan_count, coll_count, comm_count, reward_count, time_sort, author_smzdm_id, anonymous',
 		});
 		var urlPrefix = 'https://post.smzdm.com/home/json_more/?filter=all&timesort=';
 		var stop = false, p = 0, start = Date.now();
@@ -82,6 +83,107 @@
 			});
 		};
 
+		var collectAuthors = (startIndex) => {
+			db.authors.toArray().then(rows => {
+				console.log(rows.length);
+				var n = 0;
+				var titles = ['首席生活家', '普通生活家', '媒体号'];
+
+				var getValue = ($container, selector) => {
+					let html = $container.find(selector).html();
+					let value = html.substr(html.indexOf(';') + 1);
+					return value;
+				};
+
+				var collectNext = (index, length) => {
+					let nextIndex = index + length;
+
+					if (nextIndex < rows.length) {
+						collect(nextIndex, length);
+						console.log(index);
+					} else {
+						n++;
+
+						if (n == length) {
+							console.log('done');
+						}
+					}
+				};
+
+				var collect = (i, length) => {
+					let author = {
+						id: rows[i + startIndex].id,
+						name: '',
+						url: '',
+						avatar: '',
+						level: 0,
+						title: '',
+						post: 0,
+						wiki: 0,
+						discount: 0,
+						test: 0,
+						list: 0,
+						comment: 0,
+						sale: 0,
+						share: 0,
+						attention: 0,
+						fan: 0
+					};
+					let url = `https://zhiyou.smzdm.com/member/${author.id}/`;
+
+					$.get(url).fail(() => {
+						collectNext(i);
+					}).done(html => {
+						let $html = $(html.replace(/<img[^>]*>/g, ''));
+
+						// 头衔
+						let a = $.grep($html.find('.icon-medal a'), a => titles.includes(a.title)).pop();
+
+						if (a) {
+							switch (a.title) {
+								case '首席生活家':
+									content.title = 'Y';
+									break;
+								case '普通生活家':
+									content.title = 'B';
+									break;
+								case '媒体号':
+									content.title = 'R';
+									break;
+							}
+						}
+
+						// 内容
+						let $ul = $html.find('ul.navtab');
+						author.post = getValue($ul, 'li.navtab-title.yuanchuang a');
+						author.wiki = getValue($ul, 'li.navtab-title.wiki a');
+						author.discount = getValue($ul, 'li.navtab-title.baoliao a');
+						author.test = getValue($ul, 'li.navtab-title.pingce a');
+						author.list = getValue($ul, 'li.navtab-title.qingdan a');
+						author.comment = getValue($ul, 'li.navtab-title.comment a');
+						author.sale = getValue($ul, 'li.navtab-title.second a');
+						author.share = getValue($ul, 'li.navtab-title.haowu a');
+
+						// 粉丝
+						author.attention = $html.find('.user-info a.user-focus span').text();
+						author.fan = $html.find('.user-info a.user-fans span').text();
+
+						//authors.push(author);
+						db.authorsnew.put(author);
+
+						collectNext(i);
+					});
+				};
+
+				for (let i = 0; i < 10; i++) {
+					collect(i, 10);
+				}
+			});
+		};
+
+		//collectAuthors(0);
+
+		db.authors.toArray().then(rows => console.save(rows, 'authors.json'));
 /*
 		db.articles.toArray().then(rows => {
 			let count = rows.length;
